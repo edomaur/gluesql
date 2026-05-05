@@ -3,6 +3,9 @@
 mod core;
 mod error;
 mod migration;
+mod store;
+mod store_mut;
+mod transaction;
 
 pub use migration::{MigrationReport, REDB_STORAGE_FORMAT_VERSION, migrate_to_latest};
 
