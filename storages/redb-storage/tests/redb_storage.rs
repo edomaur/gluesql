@@ -30,3 +30,8 @@ impl Tester<RedbStorage> for RedbTester {
 
 generate_store_tests!(tokio::test, RedbTester);
 generate_transaction_tests!(tokio::test, RedbTester);
+generate_index_tests!(tokio::test, RedbTester);
+generate_alter_table_tests!(tokio::test, RedbTester);
+generate_alter_table_index_tests!(tokio::test, RedbTester);
+generate_transaction_alter_table_tests!(tokio::test, RedbTester);
+generate_transaction_index_tests!(tokio::test, RedbTester);
