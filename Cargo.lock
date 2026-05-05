@@ -1265,7 +1265,6 @@ dependencies = [
  "gluesql-mongo-storage",
  "gluesql-parquet-storage",
  "gluesql-redb-storage",
- "gluesql-redb4-storage",
  "gluesql-redis-storage",
  "gluesql-shared-memory-storage",
  "gluesql-test-suite",
@@ -1288,7 +1287,6 @@ dependencies = [
  "gluesql-json-storage",
  "gluesql-parquet-storage",
  "gluesql-redb-storage",
- "gluesql-redb4-storage",
  "gluesql_memory_storage",
  "gluesql_sled_storage",
  "rustyline",
@@ -1537,24 +1535,7 @@ dependencies = [
  "futures",
  "gluesql-core",
  "gluesql-test-suite",
- "redb 2.6.0",
- "serde",
- "thiserror 2.0.3",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "gluesql-redb4-storage"
-version = "0.19.1"
-dependencies = [
- "async-stream",
- "async-trait",
- "bincode",
- "futures",
- "gluesql-core",
- "gluesql-test-suite",
- "redb 4.1.0",
+ "redb",
  "serde",
  "thiserror 2.0.3",
  "tokio",
@@ -2836,15 +2817,6 @@ name = "redb"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cef6a6d3a65ea334d6cdfb31fa2525c20184b7aa7bd1ad1e2e37502610d4609f"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "redb"
-version = "4.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e925444704b5f17d32bf42f5b6e2df050bceebc3dcd6e71cc73dafe8092e839"
 dependencies = [
  "libc",
 ]

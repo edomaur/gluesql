@@ -23,7 +23,6 @@ use {
     gluesql_json_storage::JsonStorage,
     gluesql_memory_storage::MemoryStorage,
     gluesql_parquet_storage::ParquetStorage,
-    gluesql_redb4_storage::Redb4Storage,
     gluesql_redb_storage::RedbStorage,
     gluesql_sled_storage::SledStorage,
     std::{fmt::Debug, fs::File, io::Write, path::PathBuf},
@@ -62,7 +61,6 @@ enum Storage {
     Memory,
     Sled,
     Redb,
-    Redb4,
     Json,
     Csv,
     Parquet,
@@ -121,14 +119,6 @@ pub fn run() -> Result<()> {
 
             run(
                 RedbStorage::new(path).expect("failed to load redb-storage"),
-                execute,
-            );
-        }
-        (Some(path), Some(Storage::Redb4), _) => {
-            println!("[redb4-storage] connected to {}", path.display());
-
-            run(
-                Redb4Storage::new(path).expect("failed to load redb4-storage"),
                 execute,
             );
         }
