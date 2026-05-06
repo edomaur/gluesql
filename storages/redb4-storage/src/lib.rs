@@ -173,7 +173,7 @@ pub(crate) fn read_schema(
     let table = txn.open_table(SCHEMA_TABLE)?;
     let schema: Option<Schema> = table
         .get(table_name)?
-        .map(|v| bincode::deserialize(&v.value()))
+        .map(|v| postcard::from_bytes(&v.value()))
         .transpose()?;
     Ok(schema)
 }

@@ -1,6 +1,6 @@
 use {
     super::{Redb4Storage, StorageError, TransactionState},
-    bincode::deserialize,
+    postcard::from_bytes,
     futures::stream::iter,
     gluesql_core::{
         ast::IndexOperator,
@@ -52,7 +52,7 @@ pub async fn scan_indexed_data<'a>(
                     .map_err(gluesql_core::error::Error::from)
                     .and_then(|v| match v {
                         Some(v) => {
-                            let (key, row): (Key, Vec<Value>) = deserialize(&v.value())
+                            let (key, row): (Key, Vec<Value>) = from_bytes(&v.value())
                                 .map_err(StorageError::from)
                                 .map_err(gluesql_core::error::Error::from)?;
                             Ok(Some((key, row)))
@@ -99,7 +99,7 @@ fn collect_row_keys(
                     let v = idx_table.get(key_slice).map_err(StorageError::from)?;
                     match v {
                         Some(v) => {
-                            deserialize::<Vec<Vec<u8>>>(&v.value()).map_err(StorageError::from)?
+                            from_bytes::<Vec<Vec<u8>>>(&v.value()).map_err(StorageError::from)?
                         }
                         None => Vec::new(),
                     }
@@ -164,6 +164,6 @@ fn entries_to_row_keys(
 ) -> Vec<Vec<u8>> {
     items
         .into_iter()
-        .flat_map(|(_, v)| deserialize::<Vec<Vec<u8>>>(&v.value()).unwrap_or_default())
+        .flat_map(|(_, v)| from_bytes::<Vec<Vec<u8>>>(&v.value()).unwrap_or_default())
         .collect()
 }

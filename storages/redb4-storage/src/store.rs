@@ -3,7 +3,7 @@ use {
         Redb4Storage, SCHEMA_TABLE, StorageError, TransactionState, error::StorageError as SE,
     },
     async_stream::try_stream,
-    bincode::deserialize,
+    postcard::from_bytes,
     futures::stream::iter,
     gluesql_core::{
         data::{Key, Schema, Value},
@@ -21,7 +21,7 @@ pub fn fetch_all_schemas(storage: &Redb4Storage) -> Result<Vec<Schema>> {
         .iter()?
         .map(|entry| {
             let value = entry?.1.value();
-            let schema: Schema = deserialize(&value)?;
+            let schema: Schema = from_bytes(&value)?;
             Ok(schema)
         })
         .collect()
@@ -33,7 +33,7 @@ pub fn fetch_schema(storage: &Redb4Storage, table_name: &str) -> Result<Option<S
             let table = txn.open_table(SCHEMA_TABLE)?;
             let schema: Option<Schema> = table
                 .get(table_name)?
-                .map(|v| deserialize(&v.value()))
+                .map(|v| from_bytes(&v.value()))
                 .transpose()?;
             Ok(schema)
         }
@@ -42,7 +42,7 @@ pub fn fetch_schema(storage: &Redb4Storage, table_name: &str) -> Result<Option<S
             let schema: Option<Schema> = match read_txn.open_table(SCHEMA_TABLE) {
                 Ok(table) => table
                     .get(table_name)?
-                    .map(|v| deserialize(&v.value()))
+                    .map(|v| from_bytes(&v.value()))
                     .transpose()?,
                 Err(redb::TableError::TableDoesNotExist(_)) => None,
                 Err(e) => return Err(SE::RedbTable(e)),
@@ -64,7 +64,7 @@ pub fn fetch_data(
     let key_bytes = key.to_cmp_be_bytes()?;
     let row = table
         .get(key_bytes.as_slice())?
-        .map(|v| deserialize::<(Key, Vec<Value>)>(&v.value()))
+        .map(|v| from_bytes::<(Key, Vec<Value>)>(&v.value()))
         .transpose()?
         .map(|(_, row)| row);
 
@@ -82,7 +82,7 @@ pub fn scan_data<'a>(storage: &'a Redb4Storage, table_name: &str) -> Result<RowI
             .iter()?
             .map(|entry| {
                 let value = entry?.1.value();
-                let (key, row): (Key, Vec<Value>) = deserialize(&value)?;
+                let (key, row): (Key, Vec<Value>) = from_bytes(&value)?;
                 Ok((key, row))
             })
             .collect::<Result<_>>()?;
@@ -104,7 +104,7 @@ pub fn scan_data<'a>(storage: &'a Redb4Storage, table_name: &str) -> Result<RowI
         for entry in table.iter().map_err(Into::<StorageError>::into)? {
             let value = entry.map_err(Into::<StorageError>::into)?.1.value();
             let (key, row): (Key, Vec<Value>) =
-                deserialize(&value).map_err(Into::<StorageError>::into)?;
+                from_bytes(&value).map_err(Into::<StorageError>::into)?;
             yield (key, row);
         }
     };

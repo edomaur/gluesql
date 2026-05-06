@@ -1,6 +1,6 @@
 use {
     super::{Redb4Storage, SCHEMA_TABLE, StorageError, index_sync::IndexSync, read_schema},
-    bincode::{deserialize, serialize},
+    postcard::{from_bytes, to_allocvec},
     gluesql_core::{
         data::{Key, Schema, Value},
         error::Result,
@@ -16,7 +16,7 @@ pub fn insert_schema(storage: &mut Redb4Storage, schema: &Schema) -> SResult<()>
     let data_def = Redb4Storage::data_table_def(&schema.table_name)?;
     let txn = storage.txn_mut()?;
     let mut table = txn.open_table(SCHEMA_TABLE)?;
-    let value = serialize(&schema)?;
+    let value = to_allocvec(&schema)?;
     table.insert(schema.table_name.as_str(), value)?;
     drop(table);
     txn.open_table(data_def)?;
@@ -65,7 +65,7 @@ pub async fn append_data(
         for row in rows {
             let key = Key::Uuid(Uuid::now_v7().as_u128());
             let row_key = key.to_cmp_be_bytes().map_err(StorageError::Glue)?;
-            let value = serialize(&(&key, &row)).map_err(StorageError::from)?;
+            let value = to_allocvec(&(&key, &row)).map_err(StorageError::from)?;
             data_table
                 .insert(row_key.as_slice(), value)
                 .map_err(StorageError::from)?;
@@ -103,12 +103,12 @@ pub async fn insert_data(
             let old_row: Option<Vec<Value>> = data_table
                 .get(row_key.as_slice())
                 .map_err(StorageError::from)?
-                .map(|v| deserialize::<(Key, Vec<Value>)>(&v.value()))
+                .map(|v| from_bytes::<(Key, Vec<Value>)>(&v.value()))
                 .transpose()
                 .map_err(StorageError::from)?
                 .map(|(_, row)| row);
 
-            let value = serialize(&(&key, &new_row)).map_err(StorageError::from)?;
+            let value = to_allocvec(&(&key, &new_row)).map_err(StorageError::from)?;
             data_table
                 .insert(row_key.as_slice(), value)
                 .map_err(StorageError::from)?;
@@ -154,7 +154,7 @@ pub async fn delete_data(
             };
             if let Some(bytes) = maybe_bytes {
                 let (_, row): (Key, Vec<Value>) =
-                    deserialize(&bytes).map_err(StorageError::from)?;
+                    from_bytes(&bytes).map_err(StorageError::from)?;
                 data_table
                     .remove(row_key.as_slice())
                     .map_err(StorageError::from)?;

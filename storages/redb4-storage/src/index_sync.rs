@@ -1,6 +1,6 @@
 use {
     super::{Redb4Storage, StorageError},
-    bincode::{deserialize, serialize},
+    postcard::{from_bytes, to_allocvec},
     gluesql_core::{
         ast::Expr,
         data::{Schema, SchemaIndex, Value},
@@ -80,16 +80,16 @@ impl IndexSync {
         let mut row_keys: Vec<Vec<u8>> = idx_table
             .get(idx_val_bytes.as_slice())
             .map_err(StorageError::from)?
-            .map(|v| deserialize(&v.value()))
+            .map(|v| from_bytes(&v.value()))
             .transpose()
             .map_err(StorageError::from)?
             .unwrap_or_default();
 
         if !row_keys.contains(&row_key.to_vec()) {
             row_keys.push(row_key.to_vec());
-            let serialized = serialize(&row_keys).map_err(StorageError::from)?;
+            let to_allocvecd = to_allocvec(&row_keys).map_err(StorageError::from)?;
             idx_table
-                .insert(idx_val_bytes.as_slice(), serialized)
+                .insert(idx_val_bytes.as_slice(), to_allocvecd)
                 .map_err(StorageError::from)?;
         }
 
@@ -116,7 +116,7 @@ impl IndexSync {
             .get(idx_val_bytes.as_slice())
             .map_err(StorageError::from)?
         {
-            Some(v) => deserialize(&v.value()).map_err(StorageError::from)?,
+            Some(v) => from_bytes(&v.value()).map_err(StorageError::from)?,
             None => return Ok(()),
         };
 
@@ -130,9 +130,9 @@ impl IndexSync {
                 .remove(idx_val_bytes.as_slice())
                 .map_err(StorageError::from)?;
         } else {
-            let serialized = serialize(&updated).map_err(StorageError::from)?;
+            let to_allocvecd = to_allocvec(&updated).map_err(StorageError::from)?;
             idx_table
-                .insert(idx_val_bytes.as_slice(), serialized)
+                .insert(idx_val_bytes.as_slice(), to_allocvecd)
                 .map_err(StorageError::from)?;
         }
 

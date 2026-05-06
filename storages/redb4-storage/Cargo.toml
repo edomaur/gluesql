@@ -15,7 +15,7 @@ async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 futures = "0.3"
 thiserror = "2.0.3"
-bincode = "1.3.3"
+postcard = { version = "1", features = ["alloc"] }
 uuid = { version = "1.11.0", features = ["v7"] }
 async-stream = "0.3.6"
 

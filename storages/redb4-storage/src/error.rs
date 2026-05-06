@@ -30,7 +30,7 @@ pub enum StorageError {
     RedbCommit(#[from] redb::CommitError),
 
     #[error(transparent)]
-    Bincode(#[from] bincode::Error),
+    Postcard(#[from] postcard::Error),
 }
 
 impl From<StorageError> for Error {

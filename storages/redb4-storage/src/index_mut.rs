@@ -1,6 +1,6 @@
 use {
     super::{Redb4Storage, SCHEMA_TABLE, StorageError, index_sync::IndexSync, read_schema},
-    bincode::{deserialize, serialize},
+    postcard::{from_bytes, to_allocvec},
     gluesql_core::{
         ast::OrderByExpr,
         chrono::Utc,
@@ -37,7 +37,7 @@ pub async fn create_index(
     // Save updated schema
     {
         let mut schema_table = txn.open_table(SCHEMA_TABLE).map_err(StorageError::from)?;
-        let schema_bytes = serialize(&schema).map_err(StorageError::from)?;
+        let schema_bytes = to_allocvec(&schema).map_err(StorageError::from)?;
         schema_table
             .insert(table_name, schema_bytes)
             .map_err(StorageError::from)?;
@@ -52,7 +52,7 @@ pub async fn create_index(
             .map_err(StorageError::from)?
             .map(|entry| {
                 let v = entry.map_err(StorageError::from)?.1.value();
-                let (key, row): (Key, Vec<Value>) = deserialize(&v).map_err(StorageError::from)?;
+                let (key, row): (Key, Vec<Value>) = from_bytes(&v).map_err(StorageError::from)?;
                 let key_bytes = key.to_cmp_be_bytes().map_err(StorageError::Glue)?;
                 Ok((key_bytes, row))
             })
@@ -97,7 +97,7 @@ pub async fn drop_index(
     // Save updated schema
     {
         let mut schema_table = txn.open_table(SCHEMA_TABLE).map_err(StorageError::from)?;
-        let schema_bytes = serialize(&schema).map_err(StorageError::from)?;
+        let schema_bytes = to_allocvec(&schema).map_err(StorageError::from)?;
         schema_table
             .insert(table_name, schema_bytes)
             .map_err(StorageError::from)?;
