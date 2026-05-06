@@ -44,8 +44,7 @@ pub async fn create_index(
     }
 
     // Collect all existing rows to populate the new index
-    let data_def =
-        Redb4Storage::data_table_def(table_name).map_err(StorageError::from)?;
+    let data_def = Redb4Storage::data_table_def(table_name).map_err(StorageError::from)?;
     let existing_rows: Vec<(Vec<u8>, Vec<Value>)> = {
         let data_table = txn.open_table(data_def).map_err(StorageError::from)?;
         data_table
@@ -53,8 +52,7 @@ pub async fn create_index(
             .map_err(StorageError::from)?
             .map(|entry| {
                 let v = entry.map_err(StorageError::from)?.1.value();
-                let (key, row): (Key, Vec<Value>) =
-                    deserialize(&v).map_err(StorageError::from)?;
+                let (key, row): (Key, Vec<Value>) = deserialize(&v).map_err(StorageError::from)?;
                 let key_bytes = key.to_cmp_be_bytes().map_err(StorageError::Glue)?;
                 Ok((key_bytes, row))
             })
@@ -62,9 +60,10 @@ pub async fn create_index(
     };
 
     // Populate the index for all existing rows
-    let columns = schema.column_defs.as_ref().map(|defs| {
-        defs.iter().map(|d| d.name.clone()).collect::<Vec<_>>()
-    });
+    let columns = schema
+        .column_defs
+        .as_ref()
+        .map(|defs| defs.iter().map(|d| d.name.clone()).collect::<Vec<_>>());
     let sync = IndexSync {
         table_name: table_name.to_owned(),
         columns,

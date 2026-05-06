@@ -17,8 +17,7 @@ impl Tester<Redb4Storage> for Redb4Tester {
         let path = format!("tmp/{namespace}.redb4");
         let _ = remove_file(&path);
 
-        let storage =
-            Redb4Storage::new(path).expect("[Redb4Tester] failed to create storage");
+        let storage = Redb4Storage::new(path).expect("[Redb4Tester] failed to create storage");
         let glue = Glue::new(storage);
 
         Self { glue }

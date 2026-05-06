@@ -76,10 +76,7 @@ impl StorageCore {
         format!("{IDX_TABLE_PREFIX}{table_name}__{index_name}")
     }
 
-    pub(crate) fn read_schema(
-        txn: &WriteTransaction,
-        table_name: &str,
-    ) -> Result<Option<Schema>> {
+    pub(crate) fn read_schema(txn: &WriteTransaction, table_name: &str) -> Result<Option<Schema>> {
         let table = txn.open_table(SCHEMA_TABLE)?;
         let schema = table
             .get(table_name)?

@@ -1,6 +1,6 @@
 use {
     super::{
-        core::{StorageCore, SCHEMA_TABLE},
+        core::{SCHEMA_TABLE, StorageCore},
         error::StorageError,
         index_sync::IndexSync,
     },

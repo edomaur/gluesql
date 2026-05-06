@@ -1,6 +1,6 @@
 use {
     super::{
-        core::{StorageCore, TransactionState, SCHEMA_TABLE},
+        core::{SCHEMA_TABLE, StorageCore, TransactionState},
         error::StorageError,
     },
     async_stream::try_stream,

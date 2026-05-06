@@ -97,12 +97,11 @@ fn collect_row_keys(
 
             match op {
                 IndexOperator::Eq => {
-                    let v = idx_table
-                        .get(key_slice)
-                        .map_err(StorageError::from)?;
+                    let v = idx_table.get(key_slice).map_err(StorageError::from)?;
                     match v {
-                        Some(v) => deserialize::<Vec<Vec<u8>>>(&v.value())
-                            .map_err(StorageError::from)?,
+                        Some(v) => {
+                            deserialize::<Vec<Vec<u8>>>(&v.value()).map_err(StorageError::from)?
+                        }
                         None => Vec::new(),
                     }
                 }
@@ -162,15 +161,10 @@ fn collect_row_keys(
 }
 
 fn entries_to_row_keys(
-    items: Vec<(
-        redb::AccessGuard<&[u8]>,
-        redb::AccessGuard<Vec<u8>>,
-    )>,
+    items: Vec<(redb::AccessGuard<&[u8]>, redb::AccessGuard<Vec<u8>>)>,
 ) -> Vec<Vec<u8>> {
     items
         .into_iter()
-        .flat_map(|(_, v)| {
-            deserialize::<Vec<Vec<u8>>>(&v.value()).unwrap_or_default()
-        })
+        .flat_map(|(_, v)| deserialize::<Vec<Vec<u8>>>(&v.value()).unwrap_or_default())
         .collect()
 }

@@ -1,14 +1,11 @@
 use {
-    super::{
-        Redb4Storage, SCHEMA_TABLE, StorageError, index_sync::IndexSync,
-        read_schema,
-    },
+    super::{Redb4Storage, SCHEMA_TABLE, StorageError, index_sync::IndexSync, read_schema},
     bincode::{deserialize, serialize},
-    redb::ReadableTable,
     gluesql_core::{
         data::{Key, Schema, Value},
         error::Result,
     },
+    redb::ReadableTable,
     redb::{TableDefinition, WriteTransaction},
     uuid::Uuid,
 };
@@ -156,7 +153,8 @@ pub async fn delete_data(
                 guard.map(|v| v.value().to_vec())
             };
             if let Some(bytes) = maybe_bytes {
-                let (_, row): (Key, Vec<Value>) = deserialize(&bytes).map_err(StorageError::from)?;
+                let (_, row): (Key, Vec<Value>) =
+                    deserialize(&bytes).map_err(StorageError::from)?;
                 data_table
                     .remove(row_key.as_slice())
                     .map_err(StorageError::from)?;
@@ -175,10 +173,9 @@ pub async fn delete_data(
     Ok(())
 }
 
-fn build_index_sync(
-    txn: &WriteTransaction,
-    table_name: &str,
-) -> Result<Option<IndexSync>> {
+fn build_index_sync(txn: &WriteTransaction, table_name: &str) -> Result<Option<IndexSync>> {
     let schema = read_schema(txn, table_name).map_err(StorageError::from)?;
-    Ok(schema.filter(|s| !s.indexes.is_empty()).map(|s| IndexSync::new(table_name, &s)))
+    Ok(schema
+        .filter(|s| !s.indexes.is_empty())
+        .map(|s| IndexSync::new(table_name, &s)))
 }

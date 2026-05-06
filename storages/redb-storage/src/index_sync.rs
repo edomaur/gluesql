@@ -18,9 +18,10 @@ pub struct IndexSync {
 
 impl IndexSync {
     pub fn new(table_name: &str, schema: &Schema) -> Self {
-        let columns = schema.column_defs.as_ref().map(|defs| {
-            defs.iter().map(|d| d.name.clone()).collect()
-        });
+        let columns = schema
+            .column_defs
+            .as_ref()
+            .map(|defs| defs.iter().map(|d| d.name.clone()).collect());
         Self {
             table_name: table_name.to_owned(),
             columns,

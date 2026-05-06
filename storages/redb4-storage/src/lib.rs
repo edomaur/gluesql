@@ -79,6 +79,18 @@ impl Redb4Storage {
         })
     }
 
+    /// Create a fully in-memory Redb4Storage (for testing).
+    pub fn new_in_memory() -> Result<Self> {
+        let db = Database::builder()
+            .create_with_backend(redb::backends::InMemoryBackend::new())
+            .map_err(StorageError::from)?;
+        initialize_format_version(&db)?;
+        Ok(Self {
+            db,
+            state: TransactionState::None,
+        })
+    }
+
     pub(crate) fn txn(&self) -> std::result::Result<&WriteTransaction, StorageError> {
         match &self.state {
             TransactionState::Active { txn, .. } => Ok(txn),

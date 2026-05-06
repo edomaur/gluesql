@@ -1,6 +1,6 @@
 use {
     super::{
-        core::{StorageCore, SCHEMA_TABLE},
+        core::{SCHEMA_TABLE, StorageCore},
         error::StorageError,
         index_sync::IndexSync,
     },
@@ -54,8 +54,7 @@ pub async fn create_index(
             .map_err(StorageError::from)?
             .map(|entry| {
                 let v = entry.map_err(StorageError::from)?.1.value();
-                let (key, row): (Key, Vec<Value>) =
-                    deserialize(&v).map_err(StorageError::from)?;
+                let (key, row): (Key, Vec<Value>) = deserialize(&v).map_err(StorageError::from)?;
                 let key_bytes = key.to_cmp_be_bytes().map_err(StorageError::Glue)?;
                 Ok((key_bytes, row))
             })
