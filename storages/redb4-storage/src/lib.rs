@@ -26,6 +26,7 @@ use {
     },
     redb::{Database, ReadableDatabase, ReadableTable, TableDefinition, WriteTransaction},
     std::path::Path,
+    std::sync::Arc,
 };
 
 pub const REDB4_STORAGE_FORMAT_VERSION: u32 = 1;
@@ -48,7 +49,7 @@ pub(crate) enum TransactionState {
 }
 
 pub struct Redb4Storage {
-    pub(crate) db: Database,
+    pub(crate) db: Arc<Database>,
     pub(crate) state: TransactionState,
 }
 
@@ -66,7 +67,7 @@ impl Redb4Storage {
         };
 
         Ok(Self {
-            db,
+            db: Arc::new(db),
             state: TransactionState::None,
         })
     }
@@ -74,9 +75,26 @@ impl Redb4Storage {
     pub fn from_database(db: Database) -> Result<Self> {
         ensure_format_version(&db)?;
         Ok(Self {
+            db: Arc::new(db),
+            state: TransactionState::None,
+        })
+    }
+
+    /// Construct from a shared database handle.
+    ///
+    /// Use this when the same `redb::Database` must be shared with a
+    /// `ProllyEngine` for cross-domain atomic writes.
+    pub fn from_arc(db: Arc<Database>) -> Result<Self> {
+        ensure_format_version(&db)?;
+        Ok(Self {
             db,
             state: TransactionState::None,
         })
+    }
+
+    /// Return a clone of the shared database handle.
+    pub fn db(&self) -> Arc<Database> {
+        Arc::clone(&self.db)
     }
 
     /// Create a fully in-memory Redb4Storage (for testing).
@@ -86,7 +104,7 @@ impl Redb4Storage {
             .map_err(StorageError::from)?;
         initialize_format_version(&db)?;
         Ok(Self {
-            db,
+            db: Arc::new(db),
             state: TransactionState::None,
         })
     }
