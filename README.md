@@ -8,6 +8,42 @@
 [![Chat](https://img.shields.io/discord/780298017940176946?logo=discord&logoColor=white)](https://discord.gg/C6TDEgzDzY)
 [![Coverage Status](https://coveralls.io/repos/github/gluesql/gluesql/badge.svg?branch=main)](https://coveralls.io/github/gluesql/gluesql?branch=main)
 
+## Fork additions
+
+This repository is a fork of [gluesql/gluesql](https://github.com/gluesql/gluesql) that adds:
+
+### `gluesql-redb4-storage` — redb v4 storage backend
+
+A persistent storage backend built on [redb v4](https://docs.rs/redb/4) with
+[postcard](https://docs.rs/postcard) serialization, replacing the upstream `redb-storage`
+crate which targets redb v2.x and the unmaintained bincode v1.
+
+See [`storages/redb4-storage/README.md`](storages/redb4-storage/README.md) for full
+documentation including the usage guide and API reference.
+
+### Cross-domain `WriteTransaction` injection
+
+`Redb4Storage` gains two methods that let an external coordinator (e.g. a Prolly-tree
+engine sharing the same `redb::Database`) run GlueSQL operations inside its own
+transaction so both sets of writes commit atomically:
+
+```rust
+// coordinator starts the single write transaction
+let txn = db.begin_write()?;
+
+storage.inject_write_transaction(txn)?;   // GlueSQL borrows it
+glue.execute("INSERT INTO …").await?;     // writes go into txn
+let txn = storage.extract_write_transaction().unwrap(); // reclaim
+
+prolly_engine.write(&mut txn, …)?;        // other engine also writes
+txn.commit()?;                            // one atomic commit
+```
+
+While a transaction is injected, `begin()` / `commit()` / `rollback()` called by the
+GlueSQL executor become no-ops; the coordinator owns the lifecycle.
+
+---
+
 ## Multi-Model Database Engine as a Library
 
 GlueSQL is a Rust library for SQL databases that includes a parser ([sqlparser-rs](https://github.com/sqlparser-rs/sqlparser-rs)), an execution layer, and a variety of storage options, both persistent and non-persistent, all in one package. It is a versatile tool for developers, supporting both SQL and its own query builder (AST Builder). GlueSQL can handle structured and unstructured data, making it suitable for a wide range of use cases. It is portable and can be used with various storage types, including log files and read-write capable storage. GlueSQL is designed to be extensible and supports custom planners, making it a powerful tool for developers who need SQL support for their databases or services. GlueSQL is also flexible, as it can be used in Rust and JavaScript environments, and its language support is constantly expanding to include more programming languages.
@@ -111,6 +147,12 @@ Sled Storage is a persistent data storage option for GlueSQL that is built on th
 ### Redb Storage
 
 Redb Storage leverages the [redb](https://docs.rs/redb) embedded database for persistent storage with transactional support. It stores everything in a single database file, offering another simple way to keep your data on disk while enjoying GlueSQL's query capabilities.
+
+### Redb4 Storage *(fork addition)*
+
+A drop-in upgrade of Redb Storage that targets **redb v4** and uses **postcard** for
+serialization.  It additionally supports injecting an external `WriteTransaction` for
+cross-domain atomic commits.  See [`storages/redb4-storage/README.md`](storages/redb4-storage/README.md).
 
 ### JSON Storage
 
