@@ -20,7 +20,7 @@ pub async fn scan_indexed_data<'a>(
     cmp_value: Option<(&IndexOperator, Value)>,
 ) -> Result<RowIter<'a>> {
     let txn = match &storage.state {
-        TransactionState::Active { txn, .. } => txn.as_ref(),
+        TransactionState::Active { txn, .. } | TransactionState::Injected { txn } => txn.as_ref(),
         TransactionState::None => {
             return Err(Error::StorageMsg(
                 "scan_indexed_data requires an active transaction".to_owned(),

@@ -46,6 +46,13 @@ pub(crate) enum TransactionState {
         txn: Box<WriteTransaction>,
         autocommit: bool,
     },
+    /// A `WriteTransaction` owned by an external coordinator (e.g., ProllyEngine).
+    /// `begin()`, `commit()`, and `rollback()` are no-ops in this state;
+    /// the coordinator controls the transaction lifecycle.
+    /// Use `inject_write_transaction` / `extract_write_transaction` to enter/leave this state.
+    Injected {
+        txn: Box<WriteTransaction>,
+    },
 }
 
 pub struct Redb4Storage {
@@ -111,22 +118,57 @@ impl Redb4Storage {
 
     pub(crate) fn txn(&self) -> std::result::Result<&WriteTransaction, StorageError> {
         match &self.state {
-            TransactionState::Active { txn, .. } => Ok(txn),
+            TransactionState::Active { txn, .. } | TransactionState::Injected { txn } => Ok(txn),
             TransactionState::None => Err(StorageError::TransactionNotFound),
         }
     }
 
     pub(crate) fn txn_mut(&mut self) -> std::result::Result<&mut WriteTransaction, StorageError> {
         match &mut self.state {
-            TransactionState::Active { txn, .. } => Ok(txn),
+            TransactionState::Active { txn, .. } | TransactionState::Injected { txn } => Ok(txn),
             TransactionState::None => Err(StorageError::TransactionNotFound),
         }
     }
 
+    /// Only takes ownership from an `Active` transaction; injected transactions remain in place.
     pub(crate) fn take_txn(&mut self) -> Option<WriteTransaction> {
+        match &self.state {
+            TransactionState::Active { .. } => {
+                match std::mem::replace(&mut self.state, TransactionState::None) {
+                    TransactionState::Active { txn, .. } => Some(*txn),
+                    _ => unreachable!(),
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Inject an externally-owned `WriteTransaction`.
+    ///
+    /// While injected, `begin()`, `commit()`, and `rollback()` are no-ops; the
+    /// external coordinator controls the transaction lifecycle.  Call
+    /// `extract_write_transaction()` to reclaim the transaction when done.
+    pub fn inject_write_transaction(&mut self, txn: WriteTransaction) -> Result<()> {
+        if matches!(self.state, TransactionState::Active { .. }) {
+            return Err(StorageError::NestedTransactionNotSupported.into());
+        }
+        self.state = TransactionState::Injected {
+            txn: Box::new(txn),
+        };
+        Ok(())
+    }
+
+    /// Reclaim the previously injected `WriteTransaction`.
+    ///
+    /// Returns `None` if no injected transaction is active (e.g. the state is
+    /// `None` or an internally-managed `Active` transaction).
+    pub fn extract_write_transaction(&mut self) -> Option<WriteTransaction> {
         match std::mem::replace(&mut self.state, TransactionState::None) {
-            TransactionState::Active { txn, .. } => Some(*txn),
-            TransactionState::None => None,
+            TransactionState::Injected { txn } => Some(*txn),
+            other => {
+                self.state = other;
+                None
+            }
         }
     }
 

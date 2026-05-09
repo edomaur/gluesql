@@ -8,6 +8,8 @@ pub fn begin(storage: &mut Redb4Storage, autocommit: bool) -> Result<bool> {
         (TransactionState::Active { .. }, false) => {
             Err(StorageError::NestedTransactionNotSupported)
         }
+        // An injected transaction is already "in progress"; treat it like an active one.
+        (TransactionState::Injected { .. }, _) => Ok(false),
         (TransactionState::None, _) => {
             let write_txn = storage.db.begin_write()?;
             storage.state = TransactionState::Active {
@@ -20,6 +22,9 @@ pub fn begin(storage: &mut Redb4Storage, autocommit: bool) -> Result<bool> {
 }
 
 pub fn rollback(storage: &mut Redb4Storage) -> Result<()> {
+    if matches!(storage.state, TransactionState::Injected { .. }) {
+        return Ok(());
+    }
     if let Some(txn) = storage.take_txn() {
         txn.abort()?;
     }
@@ -27,6 +32,9 @@ pub fn rollback(storage: &mut Redb4Storage) -> Result<()> {
 }
 
 pub fn commit(storage: &mut Redb4Storage) -> Result<()> {
+    if matches!(storage.state, TransactionState::Injected { .. }) {
+        return Ok(());
+    }
     if let Some(txn) = storage.take_txn() {
         txn.commit()?;
     }

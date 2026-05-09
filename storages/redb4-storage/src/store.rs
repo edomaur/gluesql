@@ -29,7 +29,7 @@ pub fn fetch_all_schemas(storage: &Redb4Storage) -> Result<Vec<Schema>> {
 
 pub fn fetch_schema(storage: &Redb4Storage, table_name: &str) -> Result<Option<Schema>> {
     match &storage.state {
-        TransactionState::Active { txn, .. } => {
+        TransactionState::Active { txn, .. } | TransactionState::Injected { txn } => {
             let table = txn.open_table(SCHEMA_TABLE)?;
             let schema: Option<Schema> = table
                 .get(table_name)?
@@ -72,9 +72,14 @@ pub fn fetch_data(
 }
 
 pub fn scan_data<'a>(storage: &'a Redb4Storage, table_name: &str) -> Result<RowIter<'a>> {
-    if let TransactionState::Active { autocommit, txn } = &storage.state
-        && !autocommit
-    {
+    // Use the active transaction directly for non-autocommit and injected cases so that
+    // in-flight writes are visible and no second read-only transaction is needed.
+    let maybe_txn = match &storage.state {
+        TransactionState::Active { autocommit: false, txn } => Some(txn.as_ref()),
+        TransactionState::Injected { txn } => Some(txn.as_ref()),
+        _ => None,
+    };
+    if let Some(txn) = maybe_txn {
         let table_def = Redb4Storage::data_table_def(table_name)?;
         let table = txn.open_table(table_def)?;
 
